@@ -5,6 +5,10 @@ For now it is made to be use with my univ site but you can edit the *generateURL
 ```
 pip3 install -r requirements.txt
 ```
+Run the program by simply running : 
+```
+python3 main.py
+```
 # Si vous êtes de l'université d'évry
 Il suffit de mettre votre code de connexion a l'edt dans *CODE_CONNEXION*.
 
