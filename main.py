@@ -10,6 +10,7 @@ import signal
 
 CODE_CONNEXION = "" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo
+DEBUG = True
 
 def generateURL():
     if not not CODE_CONNEXION : 
@@ -61,12 +62,16 @@ def handler(signal, frame):
     sys.exit(0)
 
 while True:
+    DEBUG and print("Searching for ics ...") 
     ics = glob.glob("./*.ics")
     if not not ics:
-        for ic in ics : 
+        for ic in ics :
+            DEBUG and print("Found ics removing ...")  
             os.remove(ic)
     try : 
-        urllib.request.urlretrieve(generateURL(), './current.ics')
+        url = generateURL()
+        DEBUG and print("Downloading ics for url : " + str(url)) 
+        urllib.request.urlretrieve(url, './current.ics')
     except urllib.error.HTTPError as e  :
         print("Http error : " + str(e.code) + " cannot fetch file exiting...")
         sys.exit(os.EX_UNAVAILABLE)
@@ -76,6 +81,7 @@ while True:
     file = ""
     buf = ""
     try :
+        DEBUG and print("Opening ICS ...")
         file = open('./current.ics', 'rb')
         buf = file.read() 
     except OSError as e :
@@ -84,10 +90,12 @@ while True:
     except IOError as e:
         print("Cannot process file error : " +  e.strerror + " exiting...")
         sys.exit(os.EX_IOERR)
+    DEBUG and print("Reading ics")
     gcal = Calendar.from_ical(buf)
     print("Cours en cours : " + prepareDetailCour(getCurrentCours(gcal)))
     print("Prochain cours : " + prepareDetailCour(getProchainCours(gcal)))
     file.close()
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
+    DEBUG and print("Waiting ...")
     time.sleep(30)
