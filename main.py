@@ -8,23 +8,36 @@ import glob
 import time 
 import signal
 
-CODE_CONNEXION = "" #entrer le code ICI
-LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo
-DEBUG = True
+CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
+LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
+TIMEDELTA = 30 #sec  : time between each print of the event 
+TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
+DEBUG = False
+
 
 def generateURL():
+    """
+    Return the URL for the download
+    """
+    #You can easily modify this to suit your needs 
     if not not CODE_CONNEXION : 
         return 'https://edt.univ-evry.fr/icsetudiant/'+CODE_CONNEXION.lower()+'_etudiant(e).ics'
     else:
         print("Code de connexion non renseigner exiting...")
         sys.exit(os.EX_CONFIG)
+
 def deltadate(date1, date2):
+    """
+    Return the milisecond delta between the two dates
+    """
     date1mili = date1.timestamp() * 1000
     date2mili = date2.timestamp() * 1000
     return date1mili-date2mili
 
-
-def getCurrentCours(gcal):
+def getCurrentEvent(gcal):
+    """
+    Get the current event within the provided gcal obj
+    """
     datetoday = datetime.today()
     for component in gcal.walk():
         if component.name == "VEVENT":
@@ -35,8 +48,10 @@ def getCurrentCours(gcal):
                     return component
     return None
 
-
-def getProchainCours(gcal):
+def getNextEvent(gcal):
+    """
+    Return the next event within the provided gcal obj
+    """
     datetoday = datetime.today()
     lowest = datetoday.timestamp() * 1000
     out = None
@@ -49,53 +64,70 @@ def getProchainCours(gcal):
                     out = component
     return out
 
-
-def prepareDetailCour(component):
+def stringDetailEvent(component):
+    """
+    Return a string of the event details
+    """
     if(not not component):
         # timezone are the worst fucking thing ever
-        return str(component.get('summary') + "le " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%d/%m/%Y") + " à " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M") + " finissant à " + component.get('DTEND').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M"))
+        return str(component.get('summary') + " the " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%d/%m/%Y") + " at " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M") + " finishing at " + component.get('DTEND').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M"))
     else:
         return ""
 
 def handler(signal, frame):
+    """
+    Simple handler for SIGTERM and SIGINT
+    """
     print("Exiting..")
     sys.exit(0)
-
+#initializing newtime and currenttime 
+newtime = datetime.today()
+currenttime = datetime(1900,1,1)#epoch
 while True:
-    DEBUG and print("Searching for ics ...") 
-    ics = glob.glob("./*.ics")
-    if not not ics:
-        for ic in ics :
-            DEBUG and print("Found ics removing ...")  
-            os.remove(ic)
-    try : 
-        url = generateURL()
-        DEBUG and print("Downloading ics for url : " + str(url)) 
-        urllib.request.urlretrieve(url, './current.ics')
-    except urllib.error.HTTPError as e  :
-        print("Http error : " + str(e.code) + " cannot fetch file exiting...")
-        sys.exit(os.EX_UNAVAILABLE)
-    except urllib.error.URLError as e:
-        print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
-        sys.exit(os.EX_SOFTWARE)
-    file = ""
-    buf = ""
-    try :
-        DEBUG and print("Opening ICS ...")
-        file = open('./current.ics', 'rb')
-        buf = file.read() 
-    except OSError as e :
-        print("Cannot open file error : " + e.strerror + " exiting...")
-        sys.exit(os.EX_OSFILE)
-    except IOError as e:
-        print("Cannot process file error : " +  e.strerror + " exiting...")
-        sys.exit(os.EX_IOERR)
-    DEBUG and print("Reading ics")
-    gcal = Calendar.from_ical(buf)
-    print("Cours en cours : " + prepareDetailCour(getCurrentCours(gcal)))
-    print("Prochain cours : " + prepareDetailCour(getProchainCours(gcal)))
-    file.close()
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-    DEBUG and print("Waiting ...")
-    time.sleep(30)
+    if (newtime.hour*60 +  newtime.minute) - (currenttime.hour*60 +  currenttime.minute) >= TIMETODOWNLOAD :
+        DEBUG and print("Searching for ics ...") 
+        #search for the old ics file 
+        ics = glob.glob("./*.ics")
+        if not not ics:
+            for ic in ics : 
+                #delete the old ics file 
+                DEBUG and print("Found ics removing ...")  
+                os.remove(ic)
+        try : 
+            #Download the ics with the generated url in generateURL()
+            url = generateURL()
+            DEBUG and print("Downloading ics for url : " + str(url)) 
+            urllib.request.urlretrieve(url, './current.ics')
+        except urllib.error.HTTPError as e  :
+            print("Http error : " + str(e.code) + " cannot fetch file exiting...")
+            sys.exit(os.EX_UNAVAILABLE)
+        except urllib.error.URLError as e:
+            print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
+            sys.exit(os.EX_SOFTWARE)
+        file = ""
+        buf = ""
+        try :
+            #try to read the ics 
+            DEBUG and print("Opening ICS ...")
+            file = open('./current.ics', 'rb')
+            buf = file.read() 
+        except OSError as e :
+            print("Cannot open file error : " + e.strerror + " exiting...")
+            sys.exit(os.EX_OSFILE)
+        except IOError as e:
+            print("Cannot process file error : " +  e.strerror + " exiting...")
+            sys.exit(os.EX_IOERR)
+        currenttime = datetime.today()
+    else:
+        #generate the gcal object from the ics
+        DEBUG and print("Reading ics")
+        gcal = Calendar.from_ical(buf)
+        print("Current class : " + stringDetailEvent(getCurrentEvent(gcal)))
+        print("Next class : " + stringDetailEvent(getNextEvent(gcal)))
+        #waiting for the next cycle + handlers  
+        signal.signal(signal.SIGINT, handler)
+        signal.signal(signal.SIGTERM, handler)
+        DEBUG and print("Waiting ...")
+        time.sleep(TIMEDELTA)
+        newtime = datetime.today()
+
