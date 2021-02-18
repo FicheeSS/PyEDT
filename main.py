@@ -8,7 +8,7 @@ import glob
 import time 
 import signal
 
-CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
+CODE_CONNEXION = "" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
