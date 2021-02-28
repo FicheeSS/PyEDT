@@ -152,7 +152,10 @@ while True:
                    icon_path=ICOLOCATION,
                    duration=NOTIFTIMEOUT) 
         else:
-            if not notify2.Notification("PyEDT Info",message=notificationSummary,icon=PNGLOCATION).set_timeout(NOTIFTIMEOUT*1000).set_urgency(URGENCY_LOW).show():
+            notif = notify2.Notification("PyEDT Info",message=notificationSummary,icon=PNGLOCATION)
+            notif.set_timeout(NOTIFTIMEOUT*1000)
+            notif.set_urgency(0)
+            if not notif.show():
                 print("Cannot show the notification")
                 sys.exit(os.EX_NOPERM)
         #waiting for the next cycle + handlers  
