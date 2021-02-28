@@ -7,7 +7,14 @@ import os
 import glob
 import time 
 import signal
+import platform
 
+ISSYSWIN = platform.system() == "Windows"  
+if  ISSYSWIN:
+    from win10toast import ToastNotifier
+else :
+    import notify2
+ICONLOCATION = "./Edt.ico"
 CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
@@ -80,6 +87,11 @@ def handler(signal, frame):
     """
     print("Exiting..")
     sys.exit(0)
+    
+if ISSYSWIN : 
+    toaster = ToastNotifier()
+else:
+    notify2.init("PyEDT")
 #initializing newtime and currenttime 
 newtime = datetime.today()
 currenttime = datetime(1900,1,1)#epoch
@@ -122,8 +134,19 @@ while True:
         #generate the gcal object from the ics
         DEBUG and print("Reading ics")
         gcal = Calendar.from_ical(buf)
-        print("Current class : " + stringDetailEvent(getCurrentEvent(gcal)))
-        print("Next class : " + stringDetailEvent(getNextEvent(gcal)))
+        notificationSummary = ""
+        if not not stringDetailEvent(getCurrentEvent(gcal)) :
+            notificationSummary += stringDetailEvent(getCurrentEvent(gcal))
+        notificationSummary += stringDetailEvent(getNextEvent(gcal))
+        if ISSYSWIN : 
+            toaster.show_toast("PyEDT Info",
+                   notificationSummary,
+                   icon_path=ICONLOCATION,
+                   duration=10) 
+        else:
+            if not notify2.Notification("PyEDT Info",message=notificationSummary,icon=ICONLOCATION).show():
+                print("Cannot show the notification")
+                sys.exit(os.EX_NOPERM)
         #waiting for the next cycle + handlers  
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
