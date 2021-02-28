@@ -8,7 +8,7 @@ import glob
 import time 
 import signal
 import platform
-
+import sdnotify
 #use different library for windows and linux 
 ISSYSWIN = platform.system() == "Windows"  
 if  ISSYSWIN:
@@ -93,11 +93,13 @@ def handler(signal, frame):
     print("Exiting..")
     sys.exit(0)
     
-#initializing notification system
+#initializing notification system and services
 if ISSYSWIN : 
     toaster = ToastNotifier()
 else:
     notify2.init("PyEDT")
+    notifier = sdnotify.SystemdNotifier()
+    notifier.notify("READY=10")
 #initializing newtime and currenttime 
 newtime = datetime.today()
 currenttime = datetime(1900,1,1)#epoch
@@ -162,6 +164,8 @@ while True:
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
         DEBUG and print("Waiting ...")
+        not ISSYSWIN and notifier.notify("WATCHDOG="+ str(TIMEDELTA+1))
         time.sleep(TIMEDELTA)
+        not ISSYSWIN and notifier.notify("WATCHDOG=10")
         newtime = datetime.today()
 
