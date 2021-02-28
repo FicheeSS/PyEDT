@@ -9,11 +9,14 @@ import time
 import signal
 import platform
 
+#use different library for windows and linux 
 ISSYSWIN = platform.system() == "Windows"  
 if  ISSYSWIN:
     from win10toast import ToastNotifier
 else :
     import notify2
+
+#different file types used for linux and windows 
 ICOLOCATION = "./Edt.ico"
 PNGLOCATION = "./Edt.png"
 CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
@@ -89,6 +92,7 @@ def handler(signal, frame):
     print("Exiting..")
     sys.exit(0)
     
+#initializing notification system
 if ISSYSWIN : 
     toaster = ToastNotifier()
 else:
@@ -135,10 +139,12 @@ while True:
         #generate the gcal object from the ics
         DEBUG and print("Reading ics")
         gcal = Calendar.from_ical(buf)
+        #preparing notification text
         notificationSummary = ""
         if not not stringDetailEvent(getCurrentEvent(gcal)) :
             notificationSummary += stringDetailEvent(getCurrentEvent(gcal))
         notificationSummary += stringDetailEvent(getNextEvent(gcal))
+        DEBUG and print("Sending notification")
         if ISSYSWIN : 
             toaster.show_toast("PyEDT Info",
                    notificationSummary,
