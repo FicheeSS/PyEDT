@@ -14,7 +14,8 @@ if  ISSYSWIN:
     from win10toast import ToastNotifier
 else :
     import notify2
-ICONLOCATION = "./Edt.ico"
+ICOLOCATION = "./Edt.ico"
+PNGLOCATION = "./Edt.png"
 CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
@@ -141,10 +142,10 @@ while True:
         if ISSYSWIN : 
             toaster.show_toast("PyEDT Info",
                    notificationSummary,
-                   icon_path=ICONLOCATION,
+                   icon_path=ICOLOCATION,
                    duration=10) 
         else:
-            if not notify2.Notification("PyEDT Info",message=notificationSummary,icon=ICONLOCATION).show():
+            if not notify2.Notification("PyEDT Info",message=notificationSummary,icon=PNGLOCATION).show():
                 print("Cannot show the notification")
                 sys.exit(os.EX_NOPERM)
         #waiting for the next cycle + handlers  
