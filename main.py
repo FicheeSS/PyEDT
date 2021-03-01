@@ -1,3 +1,4 @@
+
 from icalendar import Calendar
 from datetime import datetime, timezone, timedelta
 import sys
@@ -16,7 +17,7 @@ if  ISSYSWIN:
 else :
     import notify2
     
-CODE_CONNEXION = "" #entrer le code ICI
+CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
 #different file types used for linux and windows 
 ICOLOCATION = "./Edt.ico"
 PNGLOCATION = "./Edt.png"
@@ -143,8 +144,8 @@ while True:
         #preparing notification text
         notificationSummary = ""
         if not not stringDetailEvent(getCurrentEvent(gcal)) :
-            notificationSummary += stringDetailEvent(getCurrentEvent(gcal))
-        notificationSummary += stringDetailEvent(getNextEvent(gcal))
+            notificationSummary += "Current event : " + stringDetailEvent(getCurrentEvent(gcal)) +"\n"
+        notificationSummary += "Next event : " + stringDetailEvent(getNextEvent(gcal))
         DEBUG and print("Sending notification")
         if ISSYSWIN : 
             toaster.show_toast("PyEDT Info",
@@ -159,6 +160,7 @@ while True:
                 print("Cannot show the notification")
                 sys.exit(os.EX_NOPERM)
         #waiting for the next cycle + handlers  
+        print(notificationSummary)
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
         DEBUG and print("Waiting ...")
