@@ -15,12 +15,12 @@ if  ISSYSWIN:
     from win10toast import ToastNotifier
 else :
     import notify2
-
+    
+CODE_CONNEXION = "" #entrer le code ICI
 #different file types used for linux and windows 
 ICOLOCATION = "./Edt.ico"
 PNGLOCATION = "./Edt.png"
 NOTIFTIMEOUT = 10 #secs  : time before notification timeout
-CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
