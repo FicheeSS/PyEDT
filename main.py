@@ -22,7 +22,7 @@ PNGLOCATION = "./Edt.png"
 NOTIFTIMEOUT = 10 #secs  : time before notification timeout
 CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
-TIMEDELTA = 30 #sec  : time between each print of the event 
+TIMEDELTA = 29 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
 DEBUG = False
 
@@ -99,7 +99,7 @@ if ISSYSWIN :
 else:
     notify2.init("PyEDT")
     notifier = sdnotify.SystemdNotifier()
-    notifier.notify("READY=10")
+    notifier.notify("READY=1")
 #initializing newtime and currenttime 
 newtime = datetime.today()
 currenttime = datetime(1900,1,1)#epoch
@@ -164,8 +164,8 @@ while True:
         signal.signal(signal.SIGINT, handler)
         signal.signal(signal.SIGTERM, handler)
         DEBUG and print("Waiting ...")
-        not ISSYSWIN and notifier.notify("WATCHDOG="+ str(TIMEDELTA+1))
+        not ISSYSWIN and notifier.notify("WATCHDOG=1")
         time.sleep(TIMEDELTA)
-        not ISSYSWIN and notifier.notify("WATCHDOG=10")
+        not ISSYSWIN and notifier.notify("WATCHDOG=1")
         newtime = datetime.today()
 
