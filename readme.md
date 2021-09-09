@@ -9,6 +9,5 @@ Run the program by simply running :
 ```
 python3 main.py
 ```
-# Si vous êtes de l'université d'évry
-Il suffit de mettre votre code de connexion a l'edt dans *CODE_CONNEXION*.
-
+# Si vous êtes de l'IUT d'Orsay
+Il vous suffit de suivre les instruction [ici](https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing) et de placer le lien ainsi obtenu dans *LINKTOICS* 

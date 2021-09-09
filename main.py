@@ -16,8 +16,8 @@ if  ISSYSWIN:
     from win10toast import ToastNotifier
 else :
     import notify2
-    
-CODE_CONNEXION = "L2INFOG2" #entrer le code ICI
+
+LINKTOICS = "" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
 #different file types used for linux and windows 
 ICOLOCATION = "./Edt.ico"
 PNGLOCATION = "./Edt.png"
@@ -33,10 +33,10 @@ def generateURL():
     Return the URL for the download
     """
     #You can easily modify this to suit your needs 
-    if not not CODE_CONNEXION : 
-        return 'https://edt.univ-evry.fr/icsetudiant/'+CODE_CONNEXION.lower()+'_etudiant(e).ics'
+    if not not LINKTOICS :
+        return LINKTOICS
     else:
-        print("Code de connexion non renseigner exiting...")
+        print("Erreur pas de lien")
         sys.exit(os.EX_CONFIG)
 
 def deltadate(date1, date2):
@@ -83,7 +83,7 @@ def stringDetailEvent(component):
     """
     if(not not component):
         # timezone are the worst fucking thing ever
-        return str(component.get('summary') + " the " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%d/%m/%Y") + " at " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M") + " finishing at " + component.get('DTEND').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M"))
+        return str(component.get('summary') + " the " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%d/%m/%Y") + " at " + component.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M") + " finishing at " + component.get('DTEND').dt.astimezone(LOCAL_TIMEZONE).strftime("%H-%M") + " in room : " + component.get("LOCATION"))
     else:
         return ""
 
