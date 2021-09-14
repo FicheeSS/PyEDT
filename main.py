@@ -6,21 +6,23 @@ import urllib.request
 import urllib.error
 import os 
 import glob
-from multiprocessing import Process
 from pystray import  Icon as icon, Menu as menu, MenuItem as item
 
 from PIL import Image
 
-LINKTOICS = "https://edt.iut-orsay.fr/agenda/etu/theo.bocquet_bfc42d5f914fa29b7382.ics" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
+LINKTOICS = "" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
 ICOLOCATION = "./Edt.ico"
-PNGLOCATION = "./Edt.png"
 NOTIFTIMEOUT = 10 #secs  : time before notification timeout
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
 DEBUG = False
+
 gcal = None
 currentEvent = ""
+
+
+
 def generateURL():
     """
     Return the URL for the download
@@ -81,6 +83,9 @@ def stringDetailEvent(component):
         return ""
 
 def updateIcs():
+    """
+    Download and update the ics
+    """
     DEBUG and print("Searching for ics ...")
     # search for the old ics file
     ics = glob.glob("./*.ics")
@@ -138,28 +143,34 @@ def showNextEvent():
 
 
 def secondaryNotifier(icon):
+    """
+    Run constantly in a secondary thread to launch the notify when the time come
+    """
     icon.visible = True
     time.sleep(2)
-    while True:
+    while icon._running:
         global currentEvent
         currenttime = datetime.today()
         event = getNextEvent(gcal)
-        if deltadate(currenttime, event.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE)) <= 1800000 and currentEvent != event:
+        if deltadate(currenttime, event.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE)) >= 1800000 and currentEvent != event:
             icon.notify(stringDetailEvent(event))
             currentEvent = event
-        time.sleep(600)
 
+def stop(icon, item):
+    #Workaround the bizarre way of pystray to stop the secondary thread
+    icon._running = False
+    icon.stop()
 
 ico = Image.open(ICOLOCATION)
 if __name__ == "__main__":
     updateIcs()
     icon('test',ico, menu=menu(
                 item(
-                    'Show message',
+                    'Afficher le message',
                     lambda icon, item: icon.notify(showNextEvent())),
                 item(
                     'Supprimer la notification',
                     lambda icon, item: icon.remove_notification()),
                 item("Quitter",
-                     lambda  icon, item : icon.stop())
+                     lambda icon, item: stop(icon,item),  )
                     )).run(secondaryNotifier)

@@ -1,4 +1,3 @@
 Icalendar
 notify2
-win10toast ; platform_system == "Windows"
-notify2 ; platform_system != "Windows"
+pystray
