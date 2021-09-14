@@ -10,7 +10,7 @@ from pystray import  Icon as icon, Menu as menu, MenuItem as item
 
 from PIL import Image
 
-LINKTOICS = "" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
+LINKTOICS = "https://edt.iut-orsay.fr/agenda/etu/theo.bocquet_bfc42d5f914fa29b7382.ics" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
 ICOLOCATION = "./Edt.ico"
 NOTIFTIMEOUT = 10 #secs  : time before notification timeout
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
@@ -101,10 +101,10 @@ def updateIcs():
         urllib.request.urlretrieve(url, './current.ics')
     except urllib.error.HTTPError as e:
         print("Http error : " + str(e.code) + " cannot fetch file exiting...")
-        sys.exit(os.EX_UNAVAILABLE)
+        return
     except urllib.error.URLError as e:
         print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
-        sys.exit(os.EX_SOFTWARE)
+        return
     file = ""
     try:
         # try to read the ics
