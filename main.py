@@ -1,14 +1,14 @@
 from icalendar import Calendar
 from datetime import datetime, timezone, timedelta
+import time
 import sys
 import urllib.request
 import urllib.error
 import os 
 import glob
-import time 
-import signal
-import platform
-from pystray import Icon as icon, Menu as menu, MenuItem as item
+from multiprocessing import Process
+from pystray import  Icon as icon, Menu as menu, MenuItem as item
+
 from PIL import Image
 
 LINKTOICS = "https://edt.iut-orsay.fr/agenda/etu/theo.bocquet_bfc42d5f914fa29b7382.ics" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
@@ -19,8 +19,8 @@ LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
 DEBUG = False
-
-
+gcal = None
+currentEvent = ""
 def generateURL():
     """
     Return the URL for the download
@@ -80,48 +80,51 @@ def stringDetailEvent(component):
     else:
         return ""
 
-
-
-def showNextEvent():
-    #initializing newtime and currenttime
-    newtime = datetime.today()
-    currenttime = datetime(1900,1,1)#epoch
+def updateIcs():
     DEBUG and print("Searching for ics ...")
-    #search for the old ics file
+    # search for the old ics file
     ics = glob.glob("./*.ics")
     if not not ics:
-        for ic in ics :
-            #delete the old ics file
+        for ic in ics:
+            # delete the old ics file
             DEBUG and print("Found ics removing ...")
             os.remove(ic)
-    try :
-        #Download the ics with the generated url in generateURL()
+    try:
+        # Download the ics with the generated url in generateURL()
         url = generateURL()
         DEBUG and print("Downloading ics for url : " + str(url))
         urllib.request.urlretrieve(url, './current.ics')
-    except urllib.error.HTTPError as e  :
+    except urllib.error.HTTPError as e:
         print("Http error : " + str(e.code) + " cannot fetch file exiting...")
         sys.exit(os.EX_UNAVAILABLE)
     except urllib.error.URLError as e:
         print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
         sys.exit(os.EX_SOFTWARE)
     file = ""
-    buf = ""
-    try :
-        #try to read the ics
+    try:
+        # try to read the ics
         DEBUG and print("Opening ICS ...")
         file = open('./current.ics', 'rb')
         buf = file.read()
-    except OSError as e :
+    except OSError as e:
         print("Cannot open file error : " + e.strerror + " exiting...")
         sys.exit(os.EX_OSFILE)
     except IOError as e:
-        print("Cannot process file error : " +  e.strerror + " exiting...")
+        print("Cannot process file error : " + e.strerror + " exiting...")
         sys.exit(os.EX_IOERR)
-    currenttime = datetime.today()
-    #generate the gcal object from the ics
+        # generate the gcal object from the ics
     DEBUG and print("Reading ics")
+    global gcal
     gcal = Calendar.from_ical(buf)
+
+
+def showNextEvent():
+    #initializing newtime and currenttime
+    newtime = datetime.today()
+    currenttime = datetime(1900,1,1)#epoch
+    currenttime = datetime.today()
+    if (newtime.hour * 60 + newtime.minute) - (currenttime.hour * 60 + currenttime.minute) >= TIMETODOWNLOAD:
+        updateIcs()
     #preparing notification text
     notificationSummary = ""
     if not not stringDetailEvent(getCurrentEvent(gcal)) :
@@ -133,8 +136,23 @@ def showNextEvent():
     newtime = datetime.today()
     return notificationSummary
 
+
+def secondaryNotifier(icon):
+    icon.visible = True
+    time.sleep(2)
+    while True:
+        global currentEvent
+        currenttime = datetime.today()
+        event = getNextEvent(gcal)
+        if deltadate(currenttime, event.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE)) <= 1800000 and currentEvent != event:
+            icon.notify(stringDetailEvent(event))
+            currentEvent = event
+        time.sleep(600)
+
+
 ico = Image.open(ICOLOCATION)
 if __name__ == "__main__":
+    updateIcs()
     icon('test',ico, menu=menu(
                 item(
                     'Show message',
@@ -144,4 +162,4 @@ if __name__ == "__main__":
                     lambda icon, item: icon.remove_notification()),
                 item("Quitter",
                      lambda  icon, item : icon.stop())
-                    )).run()
+                    )).run(secondaryNotifier)
