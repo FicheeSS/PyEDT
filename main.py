@@ -1,31 +1,26 @@
-
 from icalendar import Calendar
 from datetime import datetime, timezone, timedelta
+import time
 import sys
 import urllib.request
 import urllib.error
 import os 
 import glob
-import time 
-import signal
-import platform
+from pystray import  Icon as icon, Menu as menu, MenuItem as item
 
-#use different library for windows and linux 
-ISSYSWIN = platform.system() == "Windows"  
-if  ISSYSWIN:
-    from win10toast import ToastNotifier
-else :
-    import notify2
+from PIL import Image
 
 LINKTOICS = "" #entrer le lien ici/ Voir ici comment l'obtenir : https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing
-#different file types used for linux and windows 
 ICOLOCATION = "./Edt.ico"
-PNGLOCATION = "./Edt.png"
 NOTIFTIMEOUT = 10 #secs  : time before notification timeout
 LOCAL_TIMEZONE = datetime.now(timezone(timedelta(0))).astimezone().tzinfo #wtf
 TIMEDELTA = 30 #sec  : time between each print of the event 
 TIMETODOWNLOAD = 60 #min  : time between each download of the ics 
 DEBUG = False
+
+gcal = None
+currentEvent = ""
+
 
 
 def generateURL():
@@ -37,7 +32,7 @@ def generateURL():
         return LINKTOICS
     else:
         print("Erreur pas de lien")
-        sys.exit(os.EX_CONFIG)
+        sys.exit(1)
 
 def deltadate(date1, date2):
     """
@@ -87,83 +82,95 @@ def stringDetailEvent(component):
     else:
         return ""
 
-def handler(signal, frame):
+def updateIcs():
     """
-    Simple handler for SIGTERM and SIGINT
+    Download and update the ics
     """
-    print("Exiting..")
-    sys.exit(0)
-    
-#initializing notification system
-if ISSYSWIN : 
-    toaster = ToastNotifier()
-else:
-    notify2.init("PyEDT")
-#initializing newtime and currenttime 
-newtime = datetime.today()
-currenttime = datetime(1900,1,1)#epoch
-while True:
-    if (newtime.hour*60 +  newtime.minute) - (currenttime.hour*60 +  currenttime.minute) >= TIMETODOWNLOAD :
-        DEBUG and print("Searching for ics ...") 
-        #search for the old ics file 
-        ics = glob.glob("./*.ics")
-        if not not ics:
-            for ic in ics : 
-                #delete the old ics file 
-                DEBUG and print("Found ics removing ...")  
-                os.remove(ic)
-        try : 
-            #Download the ics with the generated url in generateURL()
-            url = generateURL()
-            DEBUG and print("Downloading ics for url : " + str(url)) 
-            urllib.request.urlretrieve(url, './current.ics')
-        except urllib.error.HTTPError as e  :
-            print("Http error : " + str(e.code) + " cannot fetch file exiting...")
-            sys.exit(os.EX_UNAVAILABLE)
-        except urllib.error.URLError as e:
-            print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
-            sys.exit(os.EX_SOFTWARE)
-        file = ""
-        buf = ""
-        try :
-            #try to read the ics 
-            DEBUG and print("Opening ICS ...")
-            file = open('./current.ics', 'rb')
-            buf = file.read() 
-        except OSError as e :
-            print("Cannot open file error : " + e.strerror + " exiting...")
-            sys.exit(os.EX_OSFILE)
-        except IOError as e:
-            print("Cannot process file error : " +  e.strerror + " exiting...")
-            sys.exit(os.EX_IOERR)
-        currenttime = datetime.today()
-    else:
-        #generate the gcal object from the ics
-        DEBUG and print("Reading ics")
-        gcal = Calendar.from_ical(buf)
-        #preparing notification text
-        notificationSummary = ""
-        if not not stringDetailEvent(getCurrentEvent(gcal)) :
-            notificationSummary += "Current event : " + stringDetailEvent(getCurrentEvent(gcal)) +"\n"
-        notificationSummary += "Next event : " + stringDetailEvent(getNextEvent(gcal))
-        DEBUG and print("Sending notification")
-        if ISSYSWIN : 
-            toaster.show_toast("PyEDT Info",
-                   notificationSummary,
-                   icon_path=ICOLOCATION,
-                   duration=NOTIFTIMEOUT) 
-        else:
-            notif = notify2.Notification("PyEDT Info",message=notificationSummary,icon=PNGLOCATION)
-            notif.set_timeout(NOTIFTIMEOUT*1000)
-            notif.set_urgency(0)
-            if not notif.show():
-                print("Cannot show the notification")
-                sys.exit(os.EX_NOPERM)
-        #waiting for the next cycle + handlers  
-        print(notificationSummary)
-        signal.signal(signal.SIGINT, handler)
-        signal.signal(signal.SIGTERM, handler)
-        DEBUG and print("Waiting ...")
-        time.sleep(TIMEDELTA)
-        newtime = datetime.today()
+    DEBUG and print("Searching for ics ...")
+    # search for the old ics file
+    ics = glob.glob("./*.ics")
+    if not not ics:
+        for ic in ics:
+            # delete the old ics file
+            DEBUG and print("Found ics removing ...")
+            os.remove(ic)
+    try:
+        # Download the ics with the generated url in generateURL()
+        url = generateURL()
+        DEBUG and print("Downloading ics for url : " + str(url))
+        urllib.request.urlretrieve(url, './current.ics')
+    except urllib.error.HTTPError as e:
+        print("Http error : " + str(e.code) + " cannot fetch file exiting...")
+        sys.exit(os.EX_UNAVAILABLE)
+    except urllib.error.URLError as e:
+        print("Url error : " + str(e.reason) + " cannot fetch file exiting...")
+        sys.exit(os.EX_SOFTWARE)
+    file = ""
+    try:
+        # try to read the ics
+        DEBUG and print("Opening ICS ...")
+        file = open('./current.ics', 'rb')
+        buf = file.read()
+    except OSError as e:
+        print("Cannot open file error : " + e.strerror + " exiting...")
+        sys.exit(os.EX_OSFILE)
+    except IOError as e:
+        print("Cannot process file error : " + e.strerror + " exiting...")
+        sys.exit(os.EX_IOERR)
+        # generate the gcal object from the ics
+    DEBUG and print("Reading ics")
+    global gcal
+    gcal = Calendar.from_ical(buf)
 
+
+def showNextEvent():
+    #initializing newtime and currenttime
+    newtime = datetime.today()
+    currenttime = datetime(1900,1,1)#epoch
+    currenttime = datetime.today()
+    if (newtime.hour * 60 + newtime.minute) - (currenttime.hour * 60 + currenttime.minute) >= TIMETODOWNLOAD:
+        updateIcs()
+    #preparing notification text
+    notificationSummary = ""
+    if not not stringDetailEvent(getCurrentEvent(gcal)) :
+        notificationSummary += "Current event : " + stringDetailEvent(getCurrentEvent(gcal)) +"\n"
+    notificationSummary += "Next event : " + stringDetailEvent(getNextEvent(gcal))
+    DEBUG and print("Sending notification")
+    #waiting for the next cycle + handlers
+    DEBUG and print("Waiting ...")
+    newtime = datetime.today()
+    return notificationSummary
+
+
+def secondaryNotifier(icon):
+    """
+    Run constantly in a secondary thread to launch the notify when the time come
+    """
+    icon.visible = True
+    time.sleep(2)
+    while icon._running:
+        global currentEvent
+        currenttime = datetime.today()
+        event = getNextEvent(gcal)
+        if deltadate(currenttime, event.get('DTSTART').dt.astimezone(LOCAL_TIMEZONE)) >= 1800000 and currentEvent != event:
+            icon.notify(stringDetailEvent(event))
+            currentEvent = event
+
+def stop(icon, item):
+    #Workaround the bizarre way of pystray to stop the secondary thread
+    icon._running = False
+    icon.stop()
+
+ico = Image.open(ICOLOCATION)
+if __name__ == "__main__":
+    updateIcs()
+    icon('test',ico, menu=menu(
+                item(
+                    'Afficher le message',
+                    lambda icon, item: icon.notify(showNextEvent())),
+                item(
+                    'Supprimer la notification',
+                    lambda icon, item: icon.remove_notification()),
+                item("Quitter",
+                     lambda icon, item: stop(icon,item),  )
+                    )).run(secondaryNotifier)

@@ -5,9 +5,7 @@ For now it is made to be use with my univ site but you can edit the *generateURL
 ```
 pip3 install -r requirements.txt
 ```
-Run the program by simply running : 
-```
-python3 main.py
-```
+Run the program by running the corresponding *run.bat/sh* 
+
 # Si vous êtes de l'IUT d'Orsay
 Il vous suffit de suivre les instruction [ici](https://docs.google.com/document/d/1OyH73RNrxFUmHP-Ab8SfNRsyKjV-6SDd1ZHCukF2ufU/edit?usp=sharing) et de placer le lien ainsi obtenu dans *LINKTOICS* 
